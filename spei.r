@@ -5,8 +5,8 @@ library('xts')
 
 get_cwdiff <- function(precip, pet){
     # Get climatic water difference from precip and pet data
-    # precip: (xts object) weekly or monthly precipitation sums
-    # pet   : (xts object) weekly or monthly potential ET sums
+    # precip: (xts object) monthly precipitation sums
+    # pet   : (xts object) monthly potential ET sums
     cwdiff <- precip - pet
     return(cwdiff)
 }
@@ -14,8 +14,12 @@ get_cwdiff <- function(precip, pet){
 get_spei <- function(cwdiff, freq=12, int_per=6, plot=TRUE){
     # Get SPEI values from climatic water differential at given frequency and
     # integration period. Optionally make a plot of the data
+    #
+    # Default frequency is monthly (freq=12) but there may be ways to make
+    # weekly frequency work (freq=52) if weekly PET is available.
+    #
     # ---In---
-    # cwdiff    : (xts obj) climatic water differential time series
+    # cwdiff    : (xts obj) monthly climatic water differential time series
     # freq      : (int) frequency of cwdiff estimates (12=monthly, 52=weekly)
     # int_per   : (int) number of periods (weeks, months) used to calculate SPEI
     # plot      : (bool) Flag for making diagnostic plot of SPEI
