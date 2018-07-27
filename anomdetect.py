@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import pdb
 
 def var_climatology( ser ) :
@@ -64,58 +65,74 @@ def climate_anomaly( ser, norm=False ) :
             
     return anom
 
-def ts_anomaly( ser, window='full', norm=False ) :
+def ts_anomaly( ser, window=None, norm=False, plot=False ) :
     """
     Take multiyear series and return an anomaly series of the distance
     from the multiyear mean for each observation.
     
     Args:
         ser (obj)   : a pandas series object with a timeseries index
-        norm (bool) : if True, divide anomaly by mean to normalize
+        window (int): number of observations for a rolling window calcuation
+        norm (bool) : if true normalize the anomaly by the mean (anom/mean)
+        plot (bool) : if True make a simple plot comparing the original and
+                      transformed data
         
     Return:
-        anom (obj)  : a pandas dataframe with year and descriptive columns 
+        ser_z (obj)  : a pandas series of z-scored values 
     """
 
-    # Calculate the anomaly of the original series
-    # (subtract multiyear mean)
-    if window is 'full':
-        mov_avg = ser.mean()
+    if window is None:
+        ser_m = ser.mean()
     else:
-        mov_avg = ser.rolling(window=window, center=True,
-                min_periods=round(0.9*window)).mean() 
-    anom = ser - mov_avg
-    pdb.set_trace()
+        ser_m = ser.rolling(window=window, center=True,
+                min_periods=round(0.3*window)).mean()
+    # Calculate anomaly by subtracting mean
+    anom = ser - ser_m
     if norm:
-        anom_n = anom/mov_avg
-        return anom_n
-    else:
-        return anom
+        anom = anom/ser_m
+    
+    if plot:
+        plt.figure()
+        anom.plot(label='Anomaly (window={0},\nnorm={1})'.format(
+            str(window), str(norm)))
+        ser.plot(label='Original series')
+        plt.legend()
+        plt.show()
 
-def ts_z( ser, window='full', norm=False ) :
+    return anom
+
+def ts_zscore( ser, window=None, plot=False ) :
     """
-    Take multiyear series and return an anomaly series of the distance
-    from the multiyear mean for each observation.
+    Take a data series and return a z-score series indicating the number of
+    standard deviations away from the mean.
     
     Args:
         ser (obj)   : a pandas series object with a timeseries index
-        norm (bool) : if True, divide anomaly by mean to normalize
+        window (int): number of observations for a rolling window calcuation
+        plot (bool) : if True make a simple plot comparing the original and
+                      transformed data
         
     Return:
-        anom (obj)  : a pandas dataframe with year and descriptive columns 
+        ser_z (obj)  : a pandas series of z-scored values 
     """
+    
+    if window is None:
+        ser_m = ser.mean(skipna=True)
+        ser_sd = ser.std(skipna=True)
+    else:
+        ser_m = ser.rolling(window=window, center=True,
+                min_periods=round(0.3*window)).mean()
+        ser_sd = ser.rolling(window=window, center=True,
+                min_periods=round(0.3*window)).std()
+    # Calculate z score
+    ser_z = ((ser - ser_m)/ser_sd)
 
-    # Calculate the anomaly of the original series
-    # (subtract multiyear mean)
-    if window is 'full':
-        mov_avg = ser.mean()
-    else:
-        mov_avg = ser.rolling(window=window, center=True,
-                min_periods=round(0.9*window)).mean() 
-    anom = ser - mov_avg
-    pdb.set_trace()
-    if norm:
-        anom_n = anom/mov_avg
-        return anom_n
-    else:
-        return anom
+    if plot:
+        plt.figure()
+        ser_z.plot(label='z-score (window={0})'.format(
+            str(window)))
+        ser.plot(label='Original series')
+        plt.legend()
+        plt.show()
+
+    return ser_z
