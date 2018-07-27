@@ -172,3 +172,21 @@ def get_condition_season( df, condition_col ):
     new_df['numdays'] = enddates.season_date - startdates.season_date
     
     return new_df
+
+def array_pattern_match(array, pattern):
+    """
+    This is a simple matching algorithm that finds a small to medium pattern
+    within an array.
+
+    See [this SE question](https://stackoverflow.com/a/42493033)
+    """
+    m,n = len(array), len(pattern)
+    #pdb.set_trace()
+    # Get a list of array slices to match against
+    idx = [np.s_[i:m-n+1+i] for i in range(n)]
+    # Get a boolean array with a row containing matches for each
+    # element in the pattern
+    rowmatch = [array[idx[i]] == pattern[i] for i in range(n)]
+    # Return boolean where match begins 
+    match = np.all(rowmatch, axis=0)
+    return match
