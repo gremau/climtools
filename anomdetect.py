@@ -96,6 +96,7 @@ def ts_anomaly( ser, window=None, norm=False, plot=False ) :
         anom.plot(label='Anomaly (window={0},\nnorm={1})'.format(
             str(window), str(norm)))
         ser.plot(label='Original series')
+        plt.axhline(y=0, ls=':', c='k')
         plt.legend()
         plt.show()
 
@@ -132,7 +133,42 @@ def ts_zscore( ser, window=None, plot=False ) :
         ser_z.plot(label='z-score (window={0})'.format(
             str(window)))
         ser.plot(label='Original series')
+        plt.axhline(y=0, ls=':', c='k')
         plt.legend()
         plt.show()
 
     return ser_z
+
+
+# Group days meeting a particular condition according to a specified
+# duration. Contiguous "true" days >= duration are marked true
+def condition_duration_match( condition, obs_duration ):
+    # Use shift-compare-cumsum algorithm to group contiguous periods of
+    # meeting or not meeting the condition (True or False in column)
+    cgroup = (condition != condition.shift()).cumsum()
+    # Count the number of contiguous observations in "True" cgroups
+    cgroup_counts = cgroup[condition==True].value_counts()
+    # Get the egroups with given duration or greater and 
+    # find in original condition array
+    true_duration_cgroups = cgroup_counts.index[cgroup_counts.values >= obs_duration]
+    condition_duration = np.in1d(cgroup, true_duration_cgroups)
+    
+    return condition_duration
+
+# Get the start and end dates of a conditional array by year. Useful for
+# determining growing seasons or suchlike
+def get_condition_season( df, condition_col ):
+    # Subset array to true values only using condition column
+    df_true_cond = df.loc[ df[condition_col], [condition_col,] ].copy()
+    # Duplicate the index into a new column, then group by year
+    # and get first/last occurrence of true values in each year
+    df_true_cond['season_date'] = df_true_cond.index
+    startdates = df_true_cond.groupby(df_true_cond.index.year).first()
+    enddates = df_true_cond.groupby(df_true_cond.index.year).last()
+    # Put start and end dates in a dataframe
+    new_df = pd.DataFrame( index=startdates.index )
+    new_df['start_seas'] = startdates.season_date
+    new_df['end_seas'] = enddates.season_date
+    new_df['numdays'] = enddates.season_date - startdates.season_date
+    
+    return new_df
