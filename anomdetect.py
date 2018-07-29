@@ -150,7 +150,8 @@ def condition_duration_match( condition, obs_duration ):
     cgroup_counts = cgroup[condition==True].value_counts()
     # Get the egroups with given duration or greater and 
     # find in original condition array
-    true_duration_cgroups = cgroup_counts.index[cgroup_counts.values >= obs_duration]
+    true_duration_cgroups = cgroup_counts.index[cgroup_counts.values >= 
+            obs_duration]
     condition_duration = np.in1d(cgroup, true_duration_cgroups)
     
     return condition_duration
@@ -176,12 +177,12 @@ def get_condition_season( df, condition_col ):
 def array_pattern_match(array, pattern):
     """
     This is a simple matching algorithm that finds a small to medium pattern
-    within an array.
+    within an array. Can be used to find the start or end of boolean conditions
+    defined by condition_duration_match.
 
     See [this SE question](https://stackoverflow.com/a/42493033)
     """
     m,n = len(array), len(pattern)
-    #pdb.set_trace()
     # Get a list of array slices to match against
     idx = [np.s_[i:m-n+1+i] for i in range(n)]
     # Get a boolean array with a row containing matches for each
