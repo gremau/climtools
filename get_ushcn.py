@@ -22,8 +22,8 @@ def dropflags(ushcn_df):
     """
     Drop the flag columns
     """
-    out = ushcn_df.loc[:, ['jan','feb','mar','apr','may','jun','jul','aug',
-        'sep','oct','nov','dec','ann']]
+    out = ushcn_df.loc[:, ['1','2','3','4','5','6','7','8',
+        '9','10','11','12','ann']]
     return(out)
 
 
@@ -36,10 +36,10 @@ def get_prcp(basepath, staid=None, drop_flags=True, to_mm=True):
     widths = [11,5,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3]
     ushcn_prcp = pd.read_fwf(fname, na_values=['-9999'], header=None,
             widths=widths,
-            names=['jan','janflag','feb','febflag','mar','marflag','apr',
-                'aprflag','may','mayflag','jun','junflag','jul','julflag',
-                'aug','augflag','sep','sepflag','oct','octflag','nov',
-                'novflag','dec','decflag','ann','annflag'])
+            names=['1','janflag','2','febflag','3','marflag','4',
+                'aprflag','5','mayflag','6','junflag','7','julflag',
+                '8','augflag','9','sepflag','10','octflag','11',
+                'novflag','12','decflag','ann','annflag'])
     if staid is not None:
         ushcn_prcp = station_subset(ushcn_prcp, staid)
     if drop_flags:
@@ -57,10 +57,10 @@ def get_tavg(basepath, staid=None, drop_flags=True, to_cels=True):
     widths = [11,5,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3]
     ushcn_tavg = pd.read_fwf(fname, na_values=['-9999'], header=None,
             widths=widths,
-            names=['jan','janflag','feb','febflag','mar','marflag','apr',
-                'aprflag','may','mayflag','jun','junflag','jul','julflag',
-                'aug','augflag','sep','sepflag','oct','octflag','nov',
-                'novflag','dec','decflag','ann','annflag'])
+            names=['1','janflag','2','febflag','3','marflag','4',
+                'aprflag','5','mayflag','6','junflag','7','julflag',
+                '8','augflag','9','sepflag','10','octflag','11',
+                'novflag','12','decflag','ann','annflag'])
     if staid is not None:
         ushcn_tavg = station_subset(ushcn_tavg, staid)
     if dropflags:
@@ -69,3 +69,26 @@ def get_tavg(basepath, staid=None, drop_flags=True, to_cels=True):
         ushcn_tavg = ((ushcn_tavg/10)-32)*(5/9)
 
     return(ushcn_tavg)
+
+def reshape_ts(ushcn_ts, staid, varname):
+    """
+    Reshape a standard ushcn table with a year index and month columns. Returns
+    a long-form timeseries table
+    """
+    ushcn_ts['year'] = ushcn_ts.index
+    #slp2.melt(id_vars=['year'],value_vars=slp2.columns, ignore_index=False)
+    df = ushcn_ts.melt(id_vars=['year'], value_vars=ushcn_ts.columns[:-2],
+            var_name='month')
+    df['day'] = 1
+    df['station'] = staid
+    df['variable'] = varname
+    df.index = pd.to_datetime(df.year.map(str) + df.month.map(str) + 
+            df.day.map(str), format='%Y%m%d')
+    df.day = df.index.days_in_month
+    df.index = pd.to_datetime(df.year.map(str) + df.month.map(str) +
+            df.day.map(str), format='%Y%m%d')
+    df = df.sort_index()
+    return(df.iloc[:,[4,5,0,1,3,2]])
+
+
+
