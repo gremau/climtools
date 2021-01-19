@@ -1,11 +1,54 @@
 import os
 import pandas as pd
 
-def get_stationsfile(basepath):
+"""
+Code for getting USHCN version 2.5 data and returning as pandas dataframes.
+For more information on USHCN see here:
+    https://www.ncdc.noaa.gov/ushcn/introduction
+There are 2 available datasets on drive. The latest data come from the NCEI
+(formerly NCDC) ftp site. Those data are labeled "latest" in the function 
+parameters. I also have a 2014 dataset from the ORNL CDIAC archive (now 
+transitioning to storage at ESS Dive). Those are labeled 2014.
+"""
+
+default_basepath = '/home/greg/data/rawdata/NCDC/ushcn_v2.5/'
+
+def get_filename(dataset, varname, stationid = 'all',
+        basepath = default_basepath):
     """
-    Get the station ID list
+    Function to get the correct filename for a variable/version/path
+    Possible versions = 'latest' and '2014'
+    Possible varnames = 'prcp', 'tavg', 'tmax', and 'tmin'
     """
-    fname = os.path.join(basepath, 'ushcn-stations.txt')
+    if not isinstance(stationid, list):
+        stationid = [stationid]
+    if dataset == 'latest':
+        fdir = os.path.join(basepath,'ushcn.v2.5.5.20210118')
+        files = os.listdir(fdir)
+        varfiles = [f for f in files if varname in f]
+        if stationid[0] is not 'all':
+            varfiles = [f for f in varfiles if any(s in f for s in stationid)]
+
+        if stationid is None:
+            raise ValueError('Missing parameter - Provide a valid USHCN ' +
+                    'station ID.')
+        #fname = stationid + '.FLs.52j.' + varname
+        fpath = [os.path.join(fdir, f) for f in varfiles]
+
+    elif dataset == '2014':
+        fname = 'ushcn2014_FLs_52j_' + varname + '.txt'
+        fpath = os.path.join(basepath, pathname, fname)
+    
+    #print(fpath)
+    return(fpath)
+
+
+def get_stationsfile(basepath = default_basepath):
+    """
+    Get the station ID list. Note that the 2014 and latest versions of this
+    file are basically the same, so using latest.
+    """
+    fname = os.path.join(basepath, 'ushcn-v2.5-stations.txt')
     staid = pd.read_fwf(fname, header=None, 
             names=['id','lat','lon','elev','state','name','comp1','comp2',
                 'comp3','utcoffset'])
@@ -18,6 +61,7 @@ def station_subset(ushcn_df, staid):
     out = ushcn_df.loc[staid, :]
     return(out)
 
+
 def dropflags(ushcn_df):
     """
     Drop the flag columns
@@ -26,34 +70,62 @@ def dropflags(ushcn_df):
         '9','10','11','12','ann']]
     return(out)
 
-
-def get_prcp(basepath, staid=None, drop_flags=True, to_mm=True):
-    """
-    Get USHCN precip
-    """
-    fname = os.path.join(basepath, 'ushcn2014_FLs_52i_prcp.txt',
-            'ushcn2014_FLs_52i_prcp.txt')
+def load_2014(fname):
     widths = [11,5,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3]
-    ushcn_prcp = pd.read_fwf(fname, na_values=['-9999'], header=None,
+    ushcn2014 = pd.read_fwf(fname, na_values=['-9999'], header=None,
             widths=widths,
             names=['1','janflag','2','febflag','3','marflag','4',
                 'aprflag','5','mayflag','6','junflag','7','julflag',
                 '8','augflag','9','sepflag','10','octflag','11',
                 'novflag','12','decflag','ann','annflag'])
-    if staid is not None:
-        ushcn_prcp = station_subset(ushcn_prcp, staid)
-    if drop_flags:
-        ushcn_prcp = dropflags(ushcn_prcp)
-    if to_mm:
-        ushcn_prcp = (ushcn_prcp/100)*25.4
+    return(ushcn2014)
 
-    return(ushcn_prcp)
+def load_latest(fnames):
+    widths = [11,5,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3]
+    for i, fname in enumerate(fnames):
+        latest = pd.read_fwf(fname, na_values=['-9999'], header=None,
+                widths=widths,
+                names=['1','janflag','2','febflag','3','marflag','4',
+                    'aprflag','5','mayflag','6','junflag','7','julflag',
+                    '8','augflag','9','sepflag','10','octflag','11',
+                    'novflag','12','decflag','ann','annflag'])
+        #print(i)
+        if i==0:
+            latest_out = latest
+        else:
+            latest_out = pd.concat([latest_out, latest])
+            
+    return(latest_out)
 
-def get_tavg(basepath, staid=None, drop_flags=True, to_cels=True):
+
+def get_var(varname, staid='all', dataset='latest', basepath=default_basepath,
+        drop_flags=True, to_mm=True):
+    """
+    Get USHCN variable
+    """
+    fname = get_filename(dataset, varname, staid)
+    #print(fname)
+    if dataset=='latest':
+        df = load_latest(fname)
+    elif dataset=='2014':
+        df = load_2014(fname)
+
+    #if staid is not 'all':
+    #    df = station_subset(df, staid)
+    #if drop_flags:
+    #    df = dropflags(df)
+    #if to_mm:
+    #    df = (df/100)*25.4
+
+    return(df)
+
+def get_tavg(basepath=default_basepath, staid=None, drop_flags=True,
+        to_cels=True):
     """
     Get USHCN average temp
     """
-    fname = os.path.join(basepath, 'ushcn2014_FLs_52i_tavg.txt')
+    fname = os.path.join(basepath,'ushcn2014_FLs_52i_tavg.txt',
+            'ushcn2014_FLs_52i_tavg.txt')
     widths = [11,5,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3,6,3]
     ushcn_tavg = pd.read_fwf(fname, na_values=['-9999'], header=None,
             widths=widths,

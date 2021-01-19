@@ -45,6 +45,23 @@ def get_monthlysummary(stationlist, startdt, enddt,
     df = pd.read_csv(data)
     return(df)
 
+def get_annualsummary(stationlist, startdt, enddt,
+        varnames='TMAX,TMIN,TAVG,PRCP'):
+    params = (
+            ('dataset', 'global-summary-of-the-year'),
+            ('dataTypes', varnames), 
+            ('stations', stationlist),
+            ('startDate', startdt),
+            ('endDate', enddt),
+            ('format', 'csv'),
+            ('units', 'metric'),
+            ('includeAttributes', False)
+            )
+    response = requests.get(base_url, params=params)
+    data = StringIO(response.text)
+    df = pd.read_csv(data)
+    return(df)
+
 def get_stationsfile(basepath):
     """
     Get the station ID list
