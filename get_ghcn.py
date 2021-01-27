@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import requests
 from io import StringIO
+import pdb
 
 # See here for possible API calls:
 # https://www.ncei.noaa.gov/support/access-data-service-api-user-documentation
@@ -43,6 +44,17 @@ def get_monthlysummary(stationlist, startdt, enddt,
     response = requests.get(base_url, params=params)
     data = StringIO(response.text)
     df = pd.read_csv(data)
+    # Convert the year-month column to a monthly datetime (last day of month)
+    # Create a day column set to 1, then create datetime column
+    df['day'] = 1
+    df['dt'] = pd.to_datetime(df.DATE + '-' + df.day.map(str), 
+            format='%Y-%m-%d')
+    # Get last day of month and create a new datetime column
+    df.day = df.dt.dt.days_in_month
+    df.dt = pd.to_datetime(df.DATE +
+            '-' + df.day.map(str), format='%Y-%m-%d')
+    df.DATE = df.dt
+    df = df.loc[:,['STATION', 'DATE', 'PRCP', 'TAVG', 'TMAX', 'TMIN']]
     return(df)
 
 def get_annualsummary(stationlist, startdt, enddt,
