@@ -10,9 +10,13 @@ import pdb
 # Other possible services here: https://www.ncei.noaa.gov/access
 base_url = 'https://www.ncei.noaa.gov/access/services/data/v1'
 
-# Get the version number of the newest revision on EDI
 def get_dailysummary(stationlist, startdt, enddt,
         varnames='TMAX,TMIN,TAVG,PRCP'):
+    """
+    Get GHCN-Daily data.
+
+    https://doi.org/10.7289/V5D21VHZ
+    """
     params = (
             ('dataset', 'daily-summaries'),
             ('dataTypes', varnames), 
@@ -31,6 +35,12 @@ def get_dailysummary(stationlist, startdt, enddt,
 
 def get_monthlysummary(stationlist, startdt, enddt,
         varnames='TMAX,TMIN,TAVG,PRCP'):
+    """
+    Get Global Summary of the Month data. These are derived, in general
+    from GHCN Daily data.
+
+    https://doi.org/10.7289/V5QV3JJ5
+    """
     params = (
             ('dataset', 'global-summary-of-the-month'),
             ('dataTypes', varnames), 
@@ -59,6 +69,12 @@ def get_monthlysummary(stationlist, startdt, enddt,
 
 def get_annualsummary(stationlist, startdt, enddt,
         varnames='TMAX,TMIN,TAVG,PRCP'):
+    """
+    Get Global Summary of the Year data. These data are derived, in general,
+    from GHCN Daily data.
+
+    https://doi.org/10.7289/JWPF-Y430
+    """
     params = (
             ('dataset', 'global-summary-of-the-year'),
             ('dataTypes', varnames), 
@@ -74,15 +90,17 @@ def get_annualsummary(stationlist, startdt, enddt,
     df = pd.read_csv(data)
     return(df)
 
-def get_stationsfile(basepath):
+def get_stationsfile(
+        loc='https://www1.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt'
+        ):
     """
-    Get the station ID list
+    Get the station ID list for GHCN
     """
-    fname = os.path.join(basepath, 'ushcn-stations.txt')
-    staid = pd.read_fwf(fname, header=None, 
-            names=['id','lat','lon','elev','state','name','comp1','comp2',
-                'comp3','utcoffset'])
-    return(staid)
+    inv = pd.read_fwf(loc, header=None, infer_nrows=1000,
+            names=['id','lat','lon','elev','state','name', 'gsn_flag',
+                'hcn_crn_flag','wmo_id'])
+
+    return(inv)
 
 def station_subset(ghcn_df, staid):
     """

@@ -31,7 +31,7 @@ def get_filename(dataset, varname, stationids='all',
                 + 'or tmin.)')
     # Fetch filenames from the dataset
     if dataset == 'latest':
-        fdir = os.path.join(basepath,'ushcn.v2.5.5.20210118')
+        fdir = os.path.join(basepath,'ushcn.v2.5.5.20220609')
         files = os.listdir(fdir)
         varfiles = [f for f in files if varname in f]
         if 'all' not in stationids:
