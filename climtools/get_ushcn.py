@@ -3,9 +3,7 @@ import numpy as np
 import pandas as pd
 #import pdb
 
-"""_summary_
-
-Code for getting USHCN version 2.5 data and returning as pandas dataframes.
+"""Code for getting USHCN version 2.5 data and returning as pandas dataframes.
 
 For more information on USHCN see here:
 
@@ -23,15 +21,13 @@ machine (Greg's).
     ------
     ValueError
         _description_
-    ValueError
-        _description_
 """
 
-default_ushcn_path = '/home/greg/data/rawdata/NCDC/ushcn_v2.5/ushcn.v2.5.5.20220705'
+default_ushcn_path = '/home/greg/data/rawdata/NCDC/ushcn_v2.5/ushcn.v2.5.5.20220609'
 valid_vars = ['prcp', 'tavg', 'tmax', 'tmin']
 
 def get_filename(varname, stationids='all',
-                ushcn_path = default_ushcn_path):
+                dpath = default_ushcn_path):
     """
         Function to get the correct filename for a variable/version/path
     Possible versions = 'latest' and '2014'
@@ -62,22 +58,23 @@ def get_filename(varname, stationids='all',
                 + 'or tmin.)')
 
     # Fetch filenames from the dataset
-    files = os.listdir(ushcn_path)
+    files = os.listdir(dpath)
     varfiles = [f for f in files if varname in f]
     if 'all' not in stationids:
         varfiles = [f for f in varfiles if any(s in f for s in stationids)]
     
-    fpath = [os.path.join(ushcn_path, f) for f in varfiles]
+    fpath = [os.path.join(dpath, f) for f in varfiles]
     
     return(fpath)
 
 
-def get_stationsfile(ushcn_path = default_ushcn_path):
+def get_stationsfile(stn_path = os.path.dirname(default_ushcn_path)):
     """
     Get the station ID list. Note that the 2014 and latest versions of this
     file are basically the same, so using latest.
     """
-    fname = os.path.join(os.path.dirname(ushcn_path), 'ushcn-v2.5-stations.txt')
+    print('Retrieving ' + os.path.join(stn_path, 'ushcn-v2.5-stations.txt'))
+    fname = os.path.join(stn_path, 'ushcn-v2.5-stations.txt')
     staid = pd.read_fwf(fname, header=None, 
             names=['id','lat','lon','elev','state','name','comp1','comp2',
                 'comp3','utcoffset'])
@@ -161,11 +158,11 @@ def load_latest(fnames):
 
 
 def get_monthly_var(varname, stationids='all',
-        ushcn_path=default_ushcn_path, prep=True):
+        dpath=default_ushcn_path, prep=True):
     """
     Get USHCN variable
     """
-    fnames = get_filename(dataset, varname, stationids) 
+    fnames = get_filename(varname, stationids) 
 
     df = load_latest(fnames)
 
