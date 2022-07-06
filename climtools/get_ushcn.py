@@ -3,56 +3,81 @@ import numpy as np
 import pandas as pd
 #import pdb
 
-"""
+"""_summary_
+
 Code for getting USHCN version 2.5 data and returning as pandas dataframes.
+
 For more information on USHCN see here:
-    https://www.ncdc.noaa.gov/ushcn/introduction
-There are 2 available datasets on drive. The latest data come from the NCEI
-(formerly NCDC) ftp site. Those data are labeled "latest" in the function 
-parameters. I also have a 2014 dataset from the ORNL CDIAC archive (now 
-transitioning to storage at ESS Dive). Those are labeled 2014.
+
+https://www.ncei.noaa.gov/products/land-based-station/us-historical-climatology-network
+
+The USHCN version 2.5 data are available for download here:
+
+https://www.ncei.noaa.gov/pub/data/ushcn/v2.5/
+
+and should be downloaded to the local filesystem and then unzipped into one
+directory. The `default_ushcn_path` is currently set to the development
+machine (Greg's).
+
+    Raises
+    ------
+    ValueError
+        _description_
+    ValueError
+        _description_
 """
 
-default_basepath = '/home/greg/data/rawdata/NCDC/ushcn_v2.5/'
+default_ushcn_path = '/home/greg/data/rawdata/NCDC/ushcn_v2.5/ushcn.v2.5.5.20220705'
 valid_vars = ['prcp', 'tavg', 'tmax', 'tmin']
 
-def get_filename(dataset, varname, stationids='all',
-        basepath = default_basepath):
+def get_filename(varname, stationids='all',
+                ushcn_path = default_ushcn_path):
     """
-    Function to get the correct filename for a variable/version/path
+        Function to get the correct filename for a variable/version/path
     Possible versions = 'latest' and '2014'
     Possible varnames = 'prcp', 'tavg', 'tmax', and 'tmin'
+
+    Parameters
+    ----------
+    varname : _type_
+        _description_
+    stationids : str, optional
+        _description_, by default 'all'
+    ushcn_path : _type_, optional
+        _description_, by default default_ushcn_path
+
+    Raises
+    ------
+    ValueError
+        _description_
+    ValueError
+        _description_
     """
     # Create a list if needed and check for invalid variable names
     if not isinstance(stationids, list):
         stationids = [stationids]
+
     if varname not in valid_vars:
         raise ValueError('Not a valid variable type (select prcp, tavg, tmax, '
                 + 'or tmin.)')
-    # Fetch filenames from the dataset
-    if dataset == 'latest':
-        fdir = os.path.join(basepath,'ushcn.v2.5.5.20220609')
-        files = os.listdir(fdir)
-        varfiles = [f for f in files if varname in f]
-        if 'all' not in stationids:
-            varfiles = [f for f in varfiles if any(s in f for s in stationids)]
-        fpath = [os.path.join(fdir, f) for f in varfiles]
 
-    elif dataset == '2014':
-        fname = 'ushcn2014_FLs_52i_' + varname + '.txt'
-        fpath = os.path.join(basepath, fname, fname)
-    else:
-        raise ValueError('Only "latest" and "2014" are accepted datasets.')
+    # Fetch filenames from the dataset
+    files = os.listdir(ushcn_path)
+    varfiles = [f for f in files if varname in f]
+    if 'all' not in stationids:
+        varfiles = [f for f in varfiles if any(s in f for s in stationids)]
+    
+    fpath = [os.path.join(ushcn_path, f) for f in varfiles]
     
     return(fpath)
 
 
-def get_stationsfile(basepath = default_basepath):
+def get_stationsfile(ushcn_path = default_ushcn_path):
     """
     Get the station ID list. Note that the 2014 and latest versions of this
     file are basically the same, so using latest.
     """
-    fname = os.path.join(basepath, 'ushcn-v2.5-stations.txt')
+    fname = os.path.join(os.path.dirname(ushcn_path), 'ushcn-v2.5-stations.txt')
     staid = pd.read_fwf(fname, header=None, 
             names=['id','lat','lon','elev','state','name','comp1','comp2',
                 'comp3','utcoffset'])
@@ -60,7 +85,7 @@ def get_stationsfile(basepath = default_basepath):
 
 def station_subset(df, stationids):
     """
-    Drop all rows except for given staion
+    Drop all rows except for given station
     """
     # Add to list if needed
     if not isinstance(stationids, list):
@@ -81,7 +106,10 @@ def dropflags(df):
 
 def load_2014(fname):
     """
-    Load file from 2014 dataset
+    Load file from 2014 dataset downloaded from CDIAC
+
+    This is deprecated
+
     """
     cwidths = [11, 5] + ([6, 1, 1, 1] * 12)
     cnames = ['stationid','year',
@@ -132,40 +160,26 @@ def load_latest(fnames):
     return(latest_out)
 
 
-def get_monthly_var(varname, stationids='all', dataset='latest',
-        basepath=default_basepath, prep=True):
+def get_monthly_var(varname, stationids='all',
+        ushcn_path=default_ushcn_path, prep=True):
     """
     Get USHCN variable
     """
     fnames = get_filename(dataset, varname, stationids) 
-    if dataset=='latest':
-        df = load_latest(fnames)
 
-    elif dataset=='2014':
-        df = load_2014(fnames)
-        df = station_subset(df, stationids)
-        # Get rid of annual columns
-        df = df.iloc[:,:-4]
+    df = load_latest(fnames)
 
     # Drop flags and convert to long format
     if prep:
         df = dropflags(df)
         df = reshape_ts(df, varname)
         # Convert units
-        if dataset=='2014':
-            if varname in valid_vars[1:4]:
-                # Convert F temps to degrees C
-                df.value = ((df.value/10)-32)*(5/9)
-            elif varname in valid_vars[0:1]:
-                # Convert in precip to mm
-                df.value = (df.value/100)*25.4
-        elif dataset=='latest':
-            if varname in valid_vars[1:4]:
-                # Convert temps to degrees C (from hundredths)
-                df.value = df.value/100
-            elif varname in valid_vars[0:1]:
-                # Convert precip to mm (from tenths)
-                df.value = df.value/10
+        if varname in valid_vars[1:4]:
+            # Convert temps to degrees C (from hundredths)
+            df.value = df.value/100
+        elif varname in valid_vars[0:1]:
+            # Convert precip to mm (from tenths)
+            df.value = df.value/10
 
     return(df)
 
