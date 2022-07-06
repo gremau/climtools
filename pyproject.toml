@@ -19,5 +19,5 @@ classifiers = [
 "Bug Tracker" = "https://github.com/gremau/climtools/issues"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0", "pandas"]
+build-backend = "setuptools.build_meta"
