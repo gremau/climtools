@@ -1,0 +1,9 @@
+# It is possible to specify requirements as plain names.
+pandas
+
+# It is possible to refer to other requirement files or constraints files.
+#-r other-requirements.txt
+#-c constraints.txt
+
+# It is possible to refer to URLs.
+#http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl
