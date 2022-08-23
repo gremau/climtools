@@ -10,6 +10,6 @@ You can install `climtools` using `pip`, but its not at PyPI yet. Either clone t
 
 or install direct from GitHub:
 
-    pip install git+git://github.com/gremau/climtools@main
+    pip install git+https://github.com/gremau/climtools@main
 
 Note that there is also a `dev` branch, which might be working great or broken. Ask me if you want to know the status.
